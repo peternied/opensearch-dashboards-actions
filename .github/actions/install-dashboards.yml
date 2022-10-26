@@ -1,0 +1,61 @@
+name: 'Hello World'
+description: 'Greet someone'
+inputs:
+  plugin_name:
+    description: 'The the name of the plugin to use, such as security-dashboards-plugin'
+    required: true
+outputs:
+  plugin_directory:
+    description: "The directory where the plugin code has been downloaded"
+    value: ${{ steps.determine-plugin-directory.outputs.plugin_directory }}
+runs:
+  using: "composite"
+  steps:
+
+    - id: determine-plugin-directory
+      run: echo "plugin_directory=./OpenSearch-Dashboards/plugins/${{ inputs.plugin_name }}" >> $GITHUB_OUTPUT
+
+    - uses: actions/checkout@v2
+      with:
+        path: OpenSearch-Dashboards
+        repository: opensearch-project/OpenSearch-Dashboards
+        ref: 'main'
+        fetch-depth: 0
+
+    - run: |
+        cd ./OpenSearch-Dashboards
+        mkdir -p plugins
+
+    - uses: actions/checkout@v2
+      with:
+        path: steps.determine-plugin-directory.outputs.plugin_directory
+        ref: ${{ github.ref }}
+
+    - id: osd_version
+      run: |
+        echo "osd_version=$(jq -r '.opensearchDashboards.version' ${{ steps.determine-plugin-directory.outputs.plugin_directory }}/package.json)" >> $GITHUB_OUTPUT
+
+    - id: branch-switch-if-possible # Defaults onto main if the branch switch doesn't work
+      continue-on-error: true
+      run: |
+        cd ./OpenSearch-Dashboards
+        git checkout ${{ steps.osd_version.outputs.osd_version }} -b v${{ steps.osd_version.outputs.osd_version }}
+
+    - id: tool-versions
+      run: |
+        echo "node_version=$(cat ./OpenSearch-Dashboards/.node-version)" >> $GITHUB_OUTPUT
+        echo "yarn_version=$(jq -r '.engines.yarn' ./OpenSearch-Dashboards/package.json)" >> $GITHUB_OUTPUT
+
+    - uses: actions/setup-node@v1
+      with:
+        node-version: ${{ steps.tool-versions.outputs.node_version }}
+        registry-url: 'https://registry.npmjs.org'
+
+    - run: |
+        npm uninstall -g yarn
+        echo "Installing yarn ${{ steps.tool-versions.outputs.yarn_version }}"
+        npm i -g yarn@${{ steps.tool-versions.outputs.yarn_version }}
+
+    - run: |
+        cd ./OpenSearch-Dashboards
+        yarn osd bootstrap --oss
