@@ -4,9 +4,6 @@ inputs:
   url:
     description: 'The url to download the file from'
     required: true
-  file-name:
-    description: 'The name the file should be saved as'
-    required: true
 
 runs:
   using: "composite"
@@ -20,7 +17,6 @@ runs:
     - run: >
         wget
         '${{ inputs.url }}'
-        --output-document=${{ inputs.file-name }}
         --retry-connrefused
         --tries=3
         --no-dns-cache
