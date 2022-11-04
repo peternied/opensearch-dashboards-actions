@@ -19,10 +19,10 @@ runs:
       
     - run: >
         wget
-        ${{ inputs.url }}
-        --output-file=${{ inputs.file-name }}
+        '${{ inputs.url }}'
+        --output-document=${{ inputs.file-name }}
         --retry-connrefused
         --tries=3
         --no-dns-cache
-        --progress=mb
+        --verbose
       shell: bash
