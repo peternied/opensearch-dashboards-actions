@@ -17,7 +17,7 @@ runs:
       run: choco install wget --no-progress
       shell: bash
       
-    - run: |
+    - run: >
         wget
         ${{ inputs.url }}
         --output-file=${{ inputs.file-name }}
